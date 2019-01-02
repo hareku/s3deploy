@@ -17,7 +17,7 @@ func main() {
 
 	app.Name = "s3-safely-deploy"
 	app.Usage = "This tool safely deploy to Amazon S3"
-	app.Version = "0.1.0"
+	app.Version = "0.2.0"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -43,8 +43,7 @@ func main() {
 
 	app.Action = func(context *cli.Context) error {
 		if context.String("bucket") == "" {
-			log.Println("bucket is required.")
-			return nil
+			return errors.New("bucket option is required")
 		}
 
 		sess := session.Must(session.NewSession(&aws.Config{
@@ -65,6 +64,6 @@ func main() {
 	err := app.Run(os.Args)
 
 	if err != nil {
-		log.Fatalf("%+v", errors.Wrap(err, "s3-safely-deploy error"))
+		log.Fatalf("%v", errors.Wrap(err, "s3-safely-deploy error"))
 	}
 }

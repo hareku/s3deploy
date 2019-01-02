@@ -10,12 +10,12 @@ func Deploy(config *Config) error {
 		return errors.Wrap(err, "Failed to get versions file from S3")
 	}
 
-	bucketObjects, err := config.ListBucketObjects()
+	uploadFiles, err := config.GetUploadFiles(config.UploadPath)
 	if err != nil {
-		return errors.Wrap(err, "Failed to list S3 objects")
+		return errors.Wrap(err, "Failed to list upload file paths")
 	}
 
-	deleteObjects := config.ResolveDeleteObjects(bucketObjects, versions)
+	deleteObjects := config.ResolveDeleteObjects(versions)
 	if len(deleteObjects) > 0 {
 		_, err = config.DeleteObjects(deleteObjects)
 		if err != nil {
@@ -23,12 +23,7 @@ func Deploy(config *Config) error {
 		}
 	}
 
-	uploadFilePaths, err := GetUploadFilePaths(config.UploadPath)
-	if err != nil {
-		return errors.Wrap(err, "Failed to list upload file paths")
-	}
-
-	newVersion, err := config.UploadFiles(uploadFilePaths)
+	newVersion, err := config.UploadFiles(uploadFiles)
 	if err != nil {
 		return errors.Wrap(err, "Failed to upload new files to S3")
 	}
@@ -38,6 +33,7 @@ func Deploy(config *Config) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to save versions file to S3")
 	}
+	versions.PrintVersions()
 
 	return nil
 }
