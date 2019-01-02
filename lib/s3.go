@@ -40,7 +40,7 @@ func versionContainKey(version *Version, key string) bool {
 
 func (config *Config) DeleteObjects(objects []*s3.ObjectIdentifier) (*s3.DeleteObjectsOutput, error) {
 	for _, object := range objects {
-		log.Printf("Deleting: %s", &object.Key)
+		log.Printf("Deleting: %s", *object.Key)
 	}
 
 	return config.S3Client.DeleteObjects(&s3.DeleteObjectsInput{
