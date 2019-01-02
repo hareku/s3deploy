@@ -3,11 +3,11 @@ package s3deploy
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"mime"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -15,8 +15,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-func GetUploadFilePaths(uploadPath string) ([]string, error) {
-	var files []string
+type UploadFile struct {
+	Path        string
+	RelPath     string
+	ContentType string
+}
+
+func (config *Config) GetUploadFiles(uploadPath string) ([]*UploadFile, error) {
+	var files []*UploadFile
 
 	err := filepath.Walk(uploadPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -24,7 +30,11 @@ func GetUploadFilePaths(uploadPath string) ([]string, error) {
 		}
 
 		if !info.IsDir() {
-			files = append(files, path)
+			file, err := NewUploadFile(path, config.UploadPath)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to make UploadFile")
+			}
+			files = append(files, file)
 		}
 
 		return nil
@@ -37,45 +47,74 @@ func GetUploadFilePaths(uploadPath string) ([]string, error) {
 	return files, nil
 }
 
-func (config *Config) UploadFiles(uploadFilePaths []string) (*Version, error) {
+func NewUploadFile(filePath string, basePath string) (*UploadFile, error) {
+	file := &UploadFile{
+		Path: filePath,
+	}
+
+	relPath, err := filepath.Rel(basePath, filePath)
+
+	if err != nil {
+		return file, errors.Wrapf(err, "Failed to resolve upload file rel path: %s", file.Path)
+	}
+
+	file.RelPath = relPath
+
+	contentType := mime.TypeByExtension(filepath.Ext(file.RelPath))
+	if contentType == "" {
+		file.ContentType = "application/octet-stream"
+	} else {
+		file.ContentType = contentType
+	}
+
+	return file, nil
+}
+
+func resolveUploadObjectKey(prefix string, uploadFile *UploadFile) string {
+	slashPath := filepath.ToSlash(uploadFile.RelPath)
+	withPrefixPath := strings.TrimRight(prefix, "/") + "/" + slashPath
+
+	return strings.TrimLeft(withPrefixPath, "/")
+}
+
+func (config *Config) UploadFiles(uploadFiles []*UploadFile) (*Version, error) {
 	version := &Version{
-		Keys: make([]string, len(uploadFilePaths)),
+		Keys: make([]string, len(uploadFiles)),
 	}
 
-	for index, filePath := range uploadFilePaths {
-		fileBytes, err := ioutil.ReadFile(filePath)
-		if err != nil {
-			return version, errors.Wrapf(err, "Failed to read upload file: %s", filePath)
-		}
+	var wg sync.WaitGroup
+	wg.Add(len(uploadFiles))
 
-		relPath, err := filepath.Rel(config.UploadPath, filePath)
+	for index, uploadFile := range uploadFiles {
+		go func(uploadFile *UploadFile) {
+			defer wg.Done()
+			config.uploadFile(uploadFile)
+		}(uploadFile)
 
-		if err != nil {
-			return version, errors.Wrapf(err, "Failed to resolve upload file rel path: %s", filePath)
-		}
-
-		objectKey := strings.TrimLeft(strings.TrimRight(config.Prefix, "/")+"/"+filepath.ToSlash(relPath), "/")
-
-		contentType := mime.TypeByExtension(filepath.Ext(relPath))
-		if contentType == "" {
-			contentType = "application/octet-stream"
-		}
-
-		_, err = config.S3Client.PutObject(&s3.PutObjectInput{
-			Bucket:      aws.String(config.Bucket),
-			Key:         aws.String(objectKey),
-			Body:        bytes.NewReader(fileBytes),
-			ContentType: &contentType,
-		})
-
-		log.Printf("Uploaded: %s", objectKey)
-
-		if err != nil {
-			return version, errors.Wrap(err, "Failed to put versions file to s3")
-		}
-
-		version.Keys[index] = objectKey
+		version.Keys[index] = resolveUploadObjectKey(config.Prefix, uploadFile)
 	}
+
+	wg.Wait()
 
 	return version, nil
+}
+
+func (config *Config) uploadFile(uploadFile *UploadFile) error {
+	fileBytes, err := ioutil.ReadFile(uploadFile.Path)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to read file for upload: %s", uploadFile.Path)
+	}
+
+	_, err = config.S3Client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(config.Bucket),
+		Key:         aws.String(resolveUploadObjectKey(config.Prefix, uploadFile)),
+		Body:        bytes.NewReader(fileBytes),
+		ContentType: &uploadFile.ContentType,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "Failed to upload file to S3")
+	}
+
+	return nil
 }

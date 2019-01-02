@@ -10,7 +10,7 @@ func Deploy(config *Config) error {
 		return errors.Wrap(err, "Failed to get versions file from S3")
 	}
 
-	uploadFilePaths, err := GetUploadFilePaths(config.UploadPath)
+	uploadFiles, err := config.GetUploadFiles(config.UploadPath)
 	if err != nil {
 		return errors.Wrap(err, "Failed to list upload file paths")
 	}
@@ -23,7 +23,7 @@ func Deploy(config *Config) error {
 		}
 	}
 
-	newVersion, err := config.UploadFiles(uploadFilePaths)
+	newVersion, err := config.UploadFiles(uploadFiles)
 	if err != nil {
 		return errors.Wrap(err, "Failed to upload new files to S3")
 	}

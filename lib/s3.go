@@ -20,8 +20,9 @@ func (config *Config) ResolveDeleteObjects(versions *Versions) []*s3.ObjectIdent
 			continue
 		}
 
+		appendKey := nextDeleteVersionKey
 		objects = append(objects, &s3.ObjectIdentifier{
-			Key: &nextDeleteVersionKey,
+			Key: &appendKey,
 		})
 	}
 
