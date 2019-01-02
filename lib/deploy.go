@@ -10,12 +10,7 @@ func Deploy(config *Config) error {
 		return errors.Wrap(err, "Failed to get versions file from S3")
 	}
 
-	bucketObjects, err := config.ListBucketObjects()
-	if err != nil {
-		return errors.Wrap(err, "Failed to list S3 objects")
-	}
-
-	deleteObjects := config.ResolveDeleteObjects(bucketObjects, versions)
+	deleteObjects := config.ResolveDeleteObjects(versions)
 	if len(deleteObjects) > 0 {
 		_, err = config.DeleteObjects(deleteObjects)
 		if err != nil {

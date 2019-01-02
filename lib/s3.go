@@ -8,14 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-func (config *Config) ListBucketObjects() (*s3.ListObjectsV2Output, error) {
-	return config.S3Client.ListObjectsV2(&s3.ListObjectsV2Input{
-		Bucket: aws.String(config.Bucket),
-		Prefix: aws.String(config.Prefix),
-	})
-}
-
-func (config *Config) ResolveDeleteObjects(bucketObjects *s3.ListObjectsV2Output, versions *Versions) []*s3.ObjectIdentifier {
+func (config *Config) ResolveDeleteObjects(versions *Versions) []*s3.ObjectIdentifier {
 	var objects []*s3.ObjectIdentifier
 
 	for _, nextDeleteVersionKey := range versions.NextDelete.Keys {
