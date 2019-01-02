@@ -20,7 +20,7 @@ func GetUploadFilePaths(uploadPath string) ([]string, error) {
 
 	err := filepath.Walk(uploadPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return errors.Wrapf(err, "Prevent panic by handling failure accessing a path %q", path)
+			return errors.Wrapf(err, "Failed to access the path %q", path)
 		}
 
 		if !info.IsDir() {
@@ -31,7 +31,7 @@ func GetUploadFilePaths(uploadPath string) ([]string, error) {
 	})
 
 	if err != nil {
-		return files, errors.Wrapf(err, "error walking the path %q", uploadPath)
+		return files, errors.Wrapf(err, "Error walking the path %q", uploadPath)
 	}
 
 	return files, nil
