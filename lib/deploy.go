@@ -10,17 +10,17 @@ func Deploy(config *Config) error {
 		return errors.Wrap(err, "Failed to get versions file from S3")
 	}
 
+	uploadFilePaths, err := GetUploadFilePaths(config.UploadPath)
+	if err != nil {
+		return errors.Wrap(err, "Failed to list upload file paths")
+	}
+
 	deleteObjects := config.ResolveDeleteObjects(versions)
 	if len(deleteObjects) > 0 {
 		_, err = config.DeleteObjects(deleteObjects)
 		if err != nil {
 			return errors.Wrap(err, "Failed to delete old version objects from S3")
 		}
-	}
-
-	uploadFilePaths, err := GetUploadFilePaths(config.UploadPath)
-	if err != nil {
-		return errors.Wrap(err, "Failed to list upload file paths")
 	}
 
 	newVersion, err := config.UploadFiles(uploadFilePaths)
