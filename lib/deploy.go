@@ -38,6 +38,7 @@ func Deploy(config *Config) error {
 	if err != nil {
 		return errors.Wrap(err, "Failed to save versions file to S3")
 	}
+	versions.PrintVersions()
 
 	return nil
 }

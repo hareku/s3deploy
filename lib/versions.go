@@ -77,16 +77,22 @@ func (versions *Versions) MigrateVersion(uploadVersion *Version) {
 	versions.NextDelete = versions.Previous
 	versions.Previous = versions.Current
 	versions.Current = uploadVersion
-
-	log.Print("==Saved CurrentVersion files==")
-	versions.Current.printKeys()
-	log.Print("==Saved PreviousVersion files==")
-	versions.Previous.printKeys()
-	log.Print("==Saved NextDeleteVersion files==")
-	versions.NextDelete.printKeys()
 }
 
-func (version *Version) printKeys() {
+func (versions *Versions) PrintVersions() {
+	versions.Current.printVersion("CurrentVersion")
+	versions.Previous.printVersion("PreviousVersion")
+	versions.NextDelete.printVersion("NextDeleteVersion")
+}
+
+func (version *Version) printVersion(versionName string) {
+	log.Printf("== %s ==\n", versionName)
+
+	if len(version.Keys) == 0 {
+		log.Printf("%s is empty\n", versionName)
+		return
+	}
+
 	for _, key := range version.Keys {
 		log.Print(key)
 	}
