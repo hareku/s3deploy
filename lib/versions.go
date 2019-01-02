@@ -43,11 +43,11 @@ func (config *Config) GetVersions() (*Versions, error) {
 	byteArray, err := ioutil.ReadAll(s3Result.Body)
 
 	if err != nil {
-		return nil, errors.Wrap(err, "Failed to read S3 versions file body")
+		return nil, errors.Wrap(err, "Failed to read a body of S3 versions file")
 	}
 
 	if err := json.Unmarshal(byteArray, versions); err != nil {
-		return versions, errors.Wrap(err, "Failed json.Unmarshal versions file")
+		return versions, errors.Wrap(err, "Failed to unmarshal versions file json")
 	}
 
 	return versions, err
@@ -57,7 +57,7 @@ func (config *Config) SaveVersions(versions *Versions) error {
 	jsonBytes, err := json.Marshal(versions)
 
 	if err != nil {
-		return errors.Wrap(err, "Failed to json.Marshal versions file")
+		return errors.Wrap(err, "Failed to marshal versions file json")
 	}
 
 	_, err = config.S3Client.PutObject(&s3.PutObjectInput{
