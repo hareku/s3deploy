@@ -2,23 +2,29 @@ package s3deploy
 
 import (
 	"bytes"
+	"context"
+	"fmt"
 	"io/ioutil"
 	"mime"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
-
-	"github.com/pkg/errors"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 type UploadFile struct {
 	Path        string
 	RelPath     string
 	ContentType string
+}
+
+type uploadResult struct {
+	Error      error
+	UploadFile *UploadFile
 }
 
 func (config *Config) GetUploadFiles(uploadPath string) ([]*UploadFile, error) {
@@ -82,38 +88,67 @@ func (config *Config) UploadFiles(uploadFiles []*UploadFile) (*Version, error) {
 		Keys: make([]string, len(uploadFiles)),
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(uploadFiles))
+	eg, ctx := errgroup.WithContext(context.Background())
 
 	for index, uploadFile := range uploadFiles {
-		go func(uploadFile *UploadFile) {
-			defer wg.Done()
-			config.uploadFile(uploadFile)
-		}(uploadFile)
+		uploadFileForArg := uploadFile
+		eg.Go(func() error {
+			return config.uploadFile(ctx, uploadFileForArg)
+		})
 
 		version.Keys[index] = resolveUploadObjectKey(config.Prefix, uploadFile)
 	}
 
-	wg.Wait()
+	if err := eg.Wait(); err != nil {
+		return version, errors.Wrap(err, "Failed to upload files")
+	}
 
 	return version, nil
 }
 
-func (config *Config) uploadFile(uploadFile *UploadFile) error {
-	fileBytes, err := ioutil.ReadFile(uploadFile.Path)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to read file for upload: %s", uploadFile.Path)
+func (config *Config) uploadFile(ctx context.Context, uploadFile *UploadFile) error {
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+		// do nothing
 	}
 
-	_, err = config.S3Client.PutObject(&s3.PutObjectInput{
-		Bucket:      aws.String(config.Bucket),
-		Key:         aws.String(resolveUploadObjectKey(config.Prefix, uploadFile)),
-		Body:        bytes.NewReader(fileBytes),
-		ContentType: &uploadFile.ContentType,
-	})
+	errCh := make(chan error, 1)
+	defer close(errCh)
 
-	if err != nil {
-		return errors.Wrap(err, "Failed to upload file to S3")
+	go func() {
+		fileBytes, err := ioutil.ReadFile(uploadFile.Path)
+		if err != nil {
+			errCh <- errors.Wrapf(err, "Failed to read file for upload: %s", uploadFile.Path)
+			return
+		}
+
+		_, err = config.S3Client.PutObject(&s3.PutObjectInput{
+			Bucket:      aws.String(config.Bucket),
+			Key:         aws.String(resolveUploadObjectKey(config.Prefix, uploadFile)),
+			Body:        bytes.NewReader(fileBytes),
+			ContentType: &uploadFile.ContentType,
+		})
+
+		if err != nil {
+			errCh <- errors.Wrap(err, "Failed to upload file to S3")
+			return
+		}
+
+		fmt.Printf("Uploaded: %s\n", uploadFile.Path)
+		errCh <- nil
+		return
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != nil {
+			return err
+		}
+	case <-ctx.Done():
+		<-errCh
+		return ctx.Err()
 	}
 
 	return nil
