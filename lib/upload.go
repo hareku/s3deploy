@@ -22,11 +22,6 @@ type UploadFile struct {
 	ContentType string
 }
 
-type uploadResult struct {
-	Error      error
-	UploadFile *UploadFile
-}
-
 func (config *Config) GetUploadFiles(uploadPath string) ([]*UploadFile, error) {
 	var files []*UploadFile
 
