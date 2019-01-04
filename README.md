@@ -2,9 +2,8 @@
 
 ## Description
 A simple tool to safely deploy to Amazon S3.
-Deploying three versions at the same time allows your application to safely deploy.
 
-I developed this tool as it became necessary for some Nuxt.js projects I am deploying.
+This tool manages three versions of your application.
 
 ## How to deploy
 S3 has 3 versions objects.
@@ -20,7 +19,7 @@ S3 has 3 versions objects.
 
 ## Usage
 Install
-`go get -u -v github.com/hareku/s3deploy`
+`go get -u github.com/hareku/s3deploy`
 
 Deploy
 `s3deploy --bucket my-bucket-name ./path-to-your-app`
@@ -34,6 +33,8 @@ GLOBAL OPTIONS:
 ```
 
 ## Example of use
+I developed this tool as it became necessary for Nuxt.js, Ruby on Rails projects.
+
 ### Nuxt.js Static Website
 [How to safely deploy static website to Amazon S3 (Qiita)](https://qiita.com/hareku/items/acd9dfe5d77293a4a6d9#%E5%AE%89%E5%85%A8%E3%81%AA%E3%83%87%E3%83%97%E3%83%AD%E3%82%A4%E3%82%92%E3%81%A9%E3%81%AE%E3%82%88%E3%81%86%E3%81%AB%E3%81%99%E3%82%8B%E3%81%8B)
 
