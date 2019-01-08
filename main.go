@@ -17,7 +17,7 @@ func main() {
 
 	app.Name = "s3-safely-deploy"
 	app.Usage = "This tool safely deploy to Amazon S3"
-	app.Version = "0.2.1"
+	app.Version = "0.2.2"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{

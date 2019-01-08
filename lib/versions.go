@@ -31,7 +31,7 @@ func (config *Config) GetVersions() (*Versions, error) {
 
 	s3Result, err := config.S3Client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(config.Bucket),
-		Key:    aws.String(config.VersionsFileName),
+		Key:    aws.String(strings.TrimRight(config.Prefix, "/") + "/" + config.VersionsFileName),
 	})
 
 	if err != nil {
