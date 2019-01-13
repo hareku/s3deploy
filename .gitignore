@@ -13,3 +13,6 @@
 
 # dep
 vendor
+
+# goreleaser
+dist
