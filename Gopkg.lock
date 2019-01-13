@@ -66,6 +66,14 @@
   revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
   version = "v1.20.0"
 
+[[projects]]
+  branch = "master"
+  digest = "1:b521f10a2d8fa85c04a8ef4e62f2d1e14d303599a55d64dabf9f5a02f84d35eb"
+  name = "golang.org/x/sync"
+  packages = ["errgroup"]
+  pruneopts = "UT"
+  revision = "37e7f081c4d4c64e13b10787722085407fe5d15f"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
@@ -75,6 +83,7 @@
     "github.com/aws/aws-sdk-go/service/s3",
     "github.com/pkg/errors",
     "github.com/urfave/cli",
+    "golang.org/x/sync/errgroup",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
